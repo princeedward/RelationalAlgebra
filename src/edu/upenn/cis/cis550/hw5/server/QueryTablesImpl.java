@@ -7,6 +7,7 @@ import java.util.List;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 import edu.upenn.cis.cis550.hw5.client.QueryTables;
+import edu.upenn.cis.cis550.hw5.server.expressions.And;
 import edu.upenn.cis.cis550.hw5.server.expressions.BooleanExpression;
 import edu.upenn.cis.cis550.hw5.server.expressions.Equals;
 import edu.upenn.cis.cis550.hw5.server.relalgebra.Join;
@@ -269,7 +270,7 @@ public class QueryTablesImpl extends RemoteServiceServlet implements QueryTables
 			Relation Teaches) {
 		// TODO: create RA query expression #1
 		int[] Sizes;
-		Sizes = new int[10];
+		Sizes = new int[7];
 		
 		// Join Student with Advises
 		// On S.studentID = A.studentID
@@ -289,28 +290,31 @@ public class QueryTablesImpl extends RemoteServiceServlet implements QueryTables
 		SizeAccu += Sizes[1];
 		System.out.println("Second step results size is "+Integer.toString(Sizes[1])+"\n");
 		
-		// Join Results with Takes
-		// On S.studentID = T.studentID
-		joinThese = new Equals(join, "studentID", Takes, "studentID");
-		join = new Join(joinThese, join, Takes);
-		
-		Sizes[2] = join.getResult().size();
-		SizeAccu += Sizes[2];
-		System.out.println("Third step results size is "+Integer.toString(Sizes[2])+"\n");
-		
 		// Join Results with Teaches
 		// On P.profID = E.profID
 		joinThese = new Equals(join, "profID", Teaches, "profID");
 		join = new Join(joinThese, join, Teaches);
 		
+		Sizes[2] = join.getResult().size();
+		SizeAccu += Sizes[2];
+		System.out.println("Third step results size is "+Integer.toString(Sizes[2])+"\n");
+		
+		// Join Student with Takes
+		// On S.studentID = T.studentID
+		joinThese = new Equals(Student, "studentID", Takes, "studentID");
+		Join join2 = new Join(joinThese, Student, Takes);
+		
 		Sizes[3] = join.getResult().size();
 		SizeAccu += Sizes[3];
 		System.out.println("Fourth step results size is "+Integer.toString(Sizes[3])+"\n");
 		
-		// Join Results with Teaches
-		// On T.courseID = E.courseID
-		joinThese = new Equals(join, "courseID", Teaches, "courseID");
-		join = new Join(joinThese, join, Teaches);
+		// Join Results1 with Result2
+		// On S.studentID = T.studentID
+		// And on T.courseID = E.courseID
+		joinThese = new Equals(join.getResult(), "courseID", join2.getResult(), "courseID");
+		BooleanExpression joinThese2 = new Equals(join.getResult(), "studentID", join2.getResult(), "studentID");
+		joinThese = new And(joinThese,joinThese2);
+		join = new Join(joinThese, join, join2);
 		
 		Sizes[4] = join.getResult().size();
 		SizeAccu += Sizes[4];
@@ -326,7 +330,7 @@ public class QueryTablesImpl extends RemoteServiceServlet implements QueryTables
 		System.out.println("Sixth step results size is "+Integer.toString(Sizes[5])+"\n");
 		
 		// The next operator takes the output of the join and removes
-		// the redundant "SSN" column
+		// the all the other redundant columns
 		
 		List<String> projectThese = new ArrayList<String>();
 		projectThese.add("description");
@@ -334,7 +338,7 @@ public class QueryTablesImpl extends RemoteServiceServlet implements QueryTables
 		projectThese.add("profID");
 		Project project = new Project(projectThese, join);
 		
-		Sizes[6] = join.getResult().size();
+		Sizes[6] = project.getResult().size();
 		SizeAccu += Sizes[6];
 		System.out.println("Seventh step results size is "+Integer.toString(Sizes[6])+"\n");
 		
@@ -351,7 +355,70 @@ public class QueryTablesImpl extends RemoteServiceServlet implements QueryTables
 			Relation Takes,
 			Relation Teaches) {
 		// TODO: create RA query expression #1
-		return null;
+		// TODO: create RA query expression #1
+		int[] Sizes;
+		Sizes = new int[7];
+		
+		// Join Advises with Teaches
+		// On S.studentID = A.studentID
+		BooleanExpression joinThese = new Equals(Advises, "profID", Teaches, "profID");
+		Join join = new Join(joinThese, Advises, Teaches);
+		
+		Sizes[0] = join.getResult().size();
+		int SizeAccu = Sizes[0];
+		System.out.println("First step results size is "+Integer.toString(Sizes[0])+"\n");
+		
+		// Join Results with Course
+		// On T.courseID = C.courseID
+		joinThese = new Equals(join, "courseID", Course, "courseID");
+		join = new Join(joinThese, join, Course);
+		
+		Sizes[1] = join.getResult().size();
+		SizeAccu += Sizes[1];
+		System.out.println("Second step results size is "+Integer.toString(Sizes[1])+"\n");
+		
+		// The next operator takes the output of the join and removes
+		// the all the other redundant columns
+		
+		List<String> projectThese = new ArrayList<String>();
+		projectThese.add("description");
+		projectThese.add("studentID");
+		projectThese.add("profID");
+		projectThese.add("courseID");
+		Project project = new Project(projectThese, join);
+		
+		Sizes[2] = project.getResult().size();
+		SizeAccu += Sizes[2];
+		System.out.println("Third step results size is "+Integer.toString(Sizes[2])+"\n");
+		
+		// Join previous result with Takes
+		// On S.studentID = T.studentID
+		// And on T.courseID = E.courseID
+		joinThese = new Equals(project.getResult(), "courseID", Takes, "courseID");
+		BooleanExpression joinThese2 = new Equals(project.getResult(), "studentID", Takes, "studentID");
+		joinThese = new And(joinThese,joinThese2);
+		join = new Join(joinThese, project, Takes);
+		
+		Sizes[3] = join.getResult().size();
+		SizeAccu += Sizes[3];
+		System.out.println("Fourth step results size is "+Integer.toString(Sizes[3])+"\n");
+		
+		// The next operator takes the output of the join and removes
+		// the all the other redundant columns
+		
+		projectThese = new ArrayList<String>();
+		projectThese.add("description");
+		projectThese.add("studentID");
+		projectThese.add("profID");
+		project = new Project(projectThese, join);
+		
+		Sizes[4] = project.getResult().size();
+		SizeAccu += Sizes[4];
+		System.out.println("Fifth step results size is "+Integer.toString(Sizes[4])+"\n");
+		
+		System.out.println("The accumulate size of results is "+Integer.toString(SizeAccu)+"\n");
+				
+		return project.getResult();
 	}
 
 	/**
@@ -362,6 +429,7 @@ public class QueryTablesImpl extends RemoteServiceServlet implements QueryTables
 		
 //		return execSampleQuery(R, S);
 		return execMyQuery1(Student,Professor,Advises,Course,Takes,Teaches);
+//		return execMyQuery2(Student,Professor,Advises,Course,Takes,Teaches);
 		
 		// TODO: call execMyQuery1 or execMyQuery2
 	}
