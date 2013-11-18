@@ -1,0 +1,2 @@
+serviceClass: edu.upenn.cis.cis550.hw5.client.QueryTables
+path: E9939D1D89C36C2A1F95A5F304C2D0DB.gwt.rpc
